@@ -24,7 +24,7 @@ cargo add mosir-sdk-rs
 - `run_graphql(...)` for typed Cynic operations
 - `with_token(...)` for bearer auth
 - `with_endpoint(...)` for custom endpoint
-- `subscribe_sse(...)` for thin SSE connection
+- `subscribe_sse(query, operation_name, ...)` for thin GraphQL-SSE connection
 - helper wrappers:
   - `get_preview_image_url(...)`
   - `fetch_preview_image(...)`
@@ -127,7 +127,7 @@ No media file is available for the requested media object.
 
 Server-side long-lived connection limits (commonly around 1 hour) should be handled by reconnecting intentionally.
 
-### Simple SSE connect example
+### GraphQL-SSE connect example
 
 ```rust
 use mosir_sdk_rs::MosirClient;
@@ -136,8 +136,13 @@ use mosir_sdk_rs::MosirClient;
 async fn main() -> anyhow::Result<()> {
     let client = MosirClient::new().with_token("YOUR_BEARER_TOKEN");
 
-    // Mosir SSE uses the same path as GraphQL endpoint.
-    let response = client.subscribe_sse(client.base_url(), None).await?;
+    let response = client
+        .subscribe_sse(
+            "subscription NewNotification { newNotification { id } }",
+            Some("NewNotification"),
+            None,
+        )
+        .await?;
 
     println!("status: {}", response.status());
     println!(

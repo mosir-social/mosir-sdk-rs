@@ -90,16 +90,19 @@ impl MosirClient {
 
     pub async fn subscribe_sse(
         &self,
-        path: &str,
+        query: &str,
+        operation_name: Option<&str>,
         headers: Option<HeaderMap>,
     ) -> anyhow::Result<reqwest::Response> {
-        let path = path.trim();
-        let url = if path.starts_with("http://") || path.starts_with("https://") {
-            path.to_string()
-        } else {
-            format!("{}/{}", self.base_url, path.trim_start_matches('/'))
-        };
+        let mut url = reqwest::Url::parse(&self.base_url)?;
+        {
+            let mut query_pairs = url.query_pairs_mut();
+            query_pairs.append_pair("query", query);
+            if let Some(operation_name) = operation_name {
+                query_pairs.append_pair("operationName", operation_name);
+            }
+        }
 
-        sse::connect(&self.http, &url, self.token.as_deref(), headers).await
+        sse::connect(&self.http, url.as_str(), self.token.as_deref(), headers).await
     }
 }

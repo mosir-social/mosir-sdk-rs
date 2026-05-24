@@ -2,6 +2,12 @@
 name = "mosir-sdk-rs"
 version = "0.1.0"
 edition = "2021"
+description = "Rust SDK for the Mosir public GraphQL API"
+license = "LGPL-3.0-or-later"
+repository = "https://github.com/mosir-social/mosir-sdk-rs"
+readme = "README.md"
+keywords = ["mosir", "graphql", "sdk", "cynic"]
+categories = ["api-bindings"]
 
 [lib]
 name = "mosir_sdk_rs"
