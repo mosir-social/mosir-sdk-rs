@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use cynic::QueryBuilder;
+use cynic::{QueryBuilder, SubscriptionBuilder};
 use mosir_sdk_rs::{
-    generated::operations::{GetLinkPreview, GetLinkPreviewVariables},
+    generated::operations::{GetLinkPreview, GetLinkPreviewVariables, NotificationReceived},
     helpers::PreviewImageKind,
     MosirClient,
 };
@@ -40,11 +40,7 @@ async fn main() -> anyhow::Result<()> {
 
     let sse = tokio::time::timeout(
         Duration::from_secs(5),
-        client.subscribe_sse(
-            "subscription NotificationReceived { notificationReceived { __typename } }",
-            Some("NotificationReceived"),
-            None,
-        ),
+        client.subscribe_sse_operation(NotificationReceived::build(()), None),
     )
     .await;
 

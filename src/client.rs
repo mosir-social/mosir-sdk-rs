@@ -108,4 +108,22 @@ impl MosirClient {
         )
         .await
     }
+
+    pub async fn subscribe_sse_operation<ResponseData, Vars>(
+        &self,
+        operation: cynic::StreamingOperation<ResponseData, Vars>,
+        headers: Option<HeaderMap>,
+    ) -> anyhow::Result<reqwest::Response>
+    where
+        Vars: serde::Serialize,
+    {
+        sse::connect(
+            &self.http,
+            &self.base_url,
+            self.token.as_deref(),
+            &operation,
+            headers,
+        )
+        .await
+    }
 }

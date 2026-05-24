@@ -8,11 +8,11 @@ pub struct GraphqlSseRequest<'a> {
     pub operation_name: Option<&'a str>,
 }
 
-pub async fn connect(
+pub async fn connect<Payload: serde::Serialize + ?Sized>(
     client: &reqwest::Client,
     url: &str,
     token: Option<&str>,
-    payload: &GraphqlSseRequest<'_>,
+    payload: &Payload,
     headers: Option<HeaderMap>,
 ) -> anyhow::Result<reqwest::Response> {
     let mut request = client
