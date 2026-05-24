@@ -2,35 +2,40 @@
 
 Rust SDK for the Mosir public GraphQL API.
 
-## What this SDK provides
+## Status
 
-- Generated Rust types/operations from:
-  - `public.graphqls`
-  - `public.operations.graphql`
-- Thin async client: `MosirClient`
-- Generic typed GraphQL execution: `run_graphql(...)`
-- Thin SSE connection helper: `subscribe_sse(...)`
-- Media/preview helpers with behavior aligned to TS/Python:
-  - `get_preview_image_url`
-  - `select_media_file`
-  - `fetch_media`
-  - `fetch_preview_image`
+`0.1.x` is focused on a **low-maintenance core**:
 
-## Endpoint
-
-Default endpoint:
-
-- `https://beta.mosir.app/api/v1`
-
-Override with:
-
-- `MosirClient::with_endpoint("...")`
+- generated GraphQL operation/types from shared schema files
+- a thin async client
+- required media/preview helpers (aligned with TS/Python behavior)
+- thin SSE connect helper (app owns reconnect strategy)
 
 ## Install
 
 ```bash
 cargo add mosir-sdk-rs
 ```
+
+## API overview
+
+`MosirClient` provides:
+
+- `run_graphql(...)` for typed Cynic operations
+- `with_token(...)` for bearer auth
+- `with_endpoint(...)` for custom endpoint
+- `subscribe_sse(...)` for thin SSE connection
+- helper wrappers:
+  - `get_preview_image_url(...)`
+  - `fetch_preview_image(...)`
+  - `select_media_file(...)`
+  - `fetch_media(...)`
+
+## Endpoint
+
+Default endpoint:
+
+- `https://beta.mosir.app/api/v1`
 
 ## Quick start
 
@@ -75,7 +80,7 @@ use mosir_sdk_rs::MosirClient;
 let client = MosirClient::with_endpoint("https://example.com/api/v1");
 ```
 
-## Helpers
+## Helper behavior
 
 ### Preview image URL + fetch
 
@@ -90,20 +95,16 @@ let url = client.get_preview_image_url(PreviewImageKind::Post, post_id);
 println!("{url}");
 
 let response = client
-    .fetch_preview_image(
-        PreviewImageKind::Post,
-        post_id,
-        Default::default(),
-    )
+    .fetch_preview_image(PreviewImageKind::Post, post_id, Default::default())
     .await?;
 
 println!("status: {}", response.status());
 # Ok(()) }
 ```
 
-`get_preview_image_url` uses absolute OGI route semantics (same as TS `new URL("/ogi/...", endpoint)`), so URLs are rooted at endpoint origin.
+`get_preview_image_url` uses absolute OGI route semantics (same as TS `new URL("/ogi/...", endpoint)`), so output is rooted at endpoint origin.
 
-### Media file selection behavior
+### Media file selection order
 
 `select_media_file` fallback order:
 
@@ -112,19 +113,19 @@ println!("status: {}", response.status());
 3. `THUMBNAIL`
 4. `ANIMATED_COMPATIBLE`
 5. `ANIMATED_THUMBNAIL`
-6. fallback to first file
+6. first file
 
-If no file exists, `fetch_media` returns this exact error message:
+When no file exists, `fetch_media` returns this exact error:
 
 ```text
 No media file is available for the requested media object.
 ```
 
-## SSE note
+## SSE
 
-`subscribe_sse(...)` is intentionally thin. Reconnect/backoff strategy should be implemented in your application layer.
+`subscribe_sse(...)` is intentionally thin. Reconnect/backoff should be implemented in the application.
 
-Also note the server-side long-connection limit (commonly around 1 hour): apps should reconnect intentionally.
+Server-side long-lived connection limits (commonly around 1 hour) should be handled by reconnecting intentionally.
 
 ### Simple SSE connect example
 
@@ -135,11 +136,8 @@ use mosir_sdk_rs::MosirClient;
 async fn main() -> anyhow::Result<()> {
     let client = MosirClient::new().with_token("YOUR_BEARER_TOKEN");
 
-    // Mosir SSE uses the same endpoint path as GraphQL.
-    // You can pass the absolute URL directly.
-    let response = client
-        .subscribe_sse(client.base_url(), None)
-        .await?;
+    // Mosir SSE uses the same path as GraphQL endpoint.
+    let response = client.subscribe_sse(client.base_url(), None).await?;
 
     println!("status: {}", response.status());
     println!(
@@ -147,28 +145,32 @@ async fn main() -> anyhow::Result<()> {
         response.headers().get(reqwest::header::CONTENT_TYPE)
     );
 
-    // Keep and process the response stream in your app loop.
     Ok(())
 }
 ```
+
+## Code generation
+
+Source-of-truth files:
+
+- `public.graphqls`
+- `public.operations.graphql`
+
+Regenerate operations:
+
+```bash
+task codegen
+```
+
+Generated output:
+
+- `src/generated/operations.rs`
 
 ## Smoke test
 
 ```bash
 cargo run --example smoke
 ```
-
-## Code generation
-
-Generate operations from the source-of-truth GraphQL files:
-
-```bash
-task codegen
-```
-
-This updates:
-
-- `src/generated/operations.rs`
 
 ## Development
 
