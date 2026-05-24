@@ -1,0 +1,45 @@
+version: '3'
+
+tasks:
+  codegen:
+    cmds:
+      - |
+        command -v cynic >/dev/null 2>&1 || cargo install --locked cynic-cli
+        mkdir -p src/generated
+        {
+          echo 'mod schema {'
+          echo '    cynic::use_schema!("public.graphqls");'
+          echo '}'
+          echo
+          cynic querygen --schema public.graphqls --query public.operations.graphql
+        } > src/generated/operations.rs
+        cargo fmt -- src/generated/operations.rs
+
+  check:
+    cmds:
+      - cargo check
+
+  test:
+    cmds:
+      - cargo test
+
+  smoke:
+    cmds:
+      - cargo run --example smoke
+
+  fmt:
+    cmds:
+      - cargo fmt --all
+
+  clippy:
+    cmds:
+      - cargo clippy --all-targets --all-features -- -D warnings
+
+  ci:
+    cmds:
+      - task: codegen
+      - task: fmt
+      - task: check
+      - task: test
+      - task: smoke
+      - task: clippy
