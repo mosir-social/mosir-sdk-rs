@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
 
     let preview_resp = client
         .run_graphql(GetLinkPreview::build(GetLinkPreviewVariables {
-            url: "https://www.rust-lang.org/",
+            url: "https://mosir.app/",
         }))
         .await?;
 
