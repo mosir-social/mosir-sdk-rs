@@ -94,15 +94,18 @@ impl MosirClient {
         operation_name: Option<&str>,
         headers: Option<HeaderMap>,
     ) -> anyhow::Result<reqwest::Response> {
-        let mut url = reqwest::Url::parse(&self.base_url)?;
-        {
-            let mut query_pairs = url.query_pairs_mut();
-            query_pairs.append_pair("query", query);
-            if let Some(operation_name) = operation_name {
-                query_pairs.append_pair("operationName", operation_name);
-            }
-        }
+        let payload = sse::GraphqlSseRequest {
+            query,
+            operation_name,
+        };
 
-        sse::connect(&self.http, url.as_str(), self.token.as_deref(), headers).await
+        sse::connect(
+            &self.http,
+            &self.base_url,
+            self.token.as_deref(),
+            &payload,
+            headers,
+        )
+        .await
     }
 }

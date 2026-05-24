@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use cynic::QueryBuilder;
 use mosir_sdk_rs::{
     generated::operations::{GetLinkPreview, GetLinkPreviewVariables},
@@ -35,6 +37,32 @@ async fn main() -> anyhow::Result<()> {
     let status = preview_response.status();
     let bytes = preview_response.bytes().await?;
     println!("preview fetch status: {status}, bytes: {}", bytes.len());
+
+    let sse = tokio::time::timeout(
+        Duration::from_secs(5),
+        client.subscribe_sse(
+            "subscription NotificationReceived { notificationReceived { __typename } }",
+            Some("NotificationReceived"),
+            None,
+        ),
+    )
+    .await;
+
+    match sse {
+        Ok(Ok(response)) => {
+            println!("sse connect status: {}", response.status());
+            println!(
+                "sse content-type: {:?}",
+                response.headers().get(reqwest::header::CONTENT_TYPE)
+            );
+        }
+        Ok(Err(err)) => {
+            eprintln!("sse connect error: {err}");
+        }
+        Err(_) => {
+            eprintln!("sse connect timed out after 5s");
+        }
+    }
 
     Ok(())
 }

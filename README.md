@@ -138,8 +138,8 @@ async fn main() -> anyhow::Result<()> {
 
     let response = client
         .subscribe_sse(
-            "subscription NewNotification { newNotification { id } }",
-            Some("NewNotification"),
+            "subscription NotificationReceived { notificationReceived { __typename } }",
+            Some("NotificationReceived"),
             None,
         )
         .await?;
@@ -176,6 +176,8 @@ Generated output:
 ```bash
 cargo run --example smoke
 ```
+
+The smoke example covers public GraphQL request, preview fetch, and a GraphQL-SSE connect attempt with a short timeout.
 
 ## Development
 
