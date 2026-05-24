@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use cynic::{QueryBuilder, SubscriptionBuilder};
 use mosir_sdk_rs::{
-    generated::operations::{GetLinkPreview, GetLinkPreviewVariables, NotificationReceived},
+    generated::operations::{
+        GetAccountProfile, GetAccountProfileVariables, GetLinkPreview, GetLinkPreviewVariables,
+        PostCreatedByAuthor, PostCreatedByAuthorVariables, PostType,
+    },
     helpers::PreviewImageKind,
     MosirClient,
 };
@@ -38,9 +41,27 @@ async fn main() -> anyhow::Result<()> {
     let bytes = preview_response.bytes().await?;
     println!("preview fetch status: {status}, bytes: {}", bytes.len());
 
+    let profile_resp = client
+        .run_graphql(GetAccountProfile::build(GetAccountProfileVariables {
+            account_id: None,
+            username: Some("leemiyinghao"),
+        }))
+        .await?;
+
+    let Some(profile_data) = profile_resp.data else {
+        eprintln!("profile query errors: {:#?}", profile_resp.errors);
+        return Ok(());
+    };
+
     let sse = tokio::time::timeout(
         Duration::from_secs(5),
-        client.subscribe_sse_operation(NotificationReceived::build(()), None),
+        client.subscribe_sse_operation(
+            PostCreatedByAuthor::build(PostCreatedByAuthorVariables {
+                author_id: &profile_data.get_account_profile.id,
+                post_type: Some(PostType::Post),
+            }),
+            None,
+        ),
     )
     .await;
 

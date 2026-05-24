@@ -135,15 +135,40 @@ Server-side long-lived connection limits (commonly around 1 hour) should be hand
 ### GraphQL-SSE connect example (typed)
 
 ```rust
-use cynic::SubscriptionBuilder;
-use mosir_sdk_rs::{generated::operations::NotificationReceived, MosirClient};
+use cynic::{QueryBuilder, SubscriptionBuilder};
+use mosir_sdk_rs::{
+    generated::operations::{
+        GetAccountProfile, GetAccountProfileVariables, PostCreatedByAuthor,
+        PostCreatedByAuthorVariables, PostType,
+    },
+    MosirClient,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let client = MosirClient::new().with_token("YOUR_BEARER_TOKEN");
+    let client = MosirClient::new();
+
+    let profile = client
+        .run_graphql(GetAccountProfile::build(GetAccountProfileVariables {
+            account_id: None,
+            username: Some("leemiyinghao"),
+        }))
+        .await?;
+
+    let author_id = &profile
+        .data
+        .ok_or_else(|| anyhow::anyhow!("missing profile data"))?
+        .get_account_profile
+        .id;
 
     let response = client
-        .subscribe_sse_operation(NotificationReceived::build(()), None)
+        .subscribe_sse_operation(
+            PostCreatedByAuthor::build(PostCreatedByAuthorVariables {
+                author_id,
+                post_type: Some(PostType::Post),
+            }),
+            None,
+        )
         .await?;
 
     println!("status: {}", response.status());
@@ -179,7 +204,7 @@ Generated output:
 cargo run --example smoke
 ```
 
-The smoke example covers public GraphQL request, preview fetch, and a GraphQL-SSE connect attempt with a short timeout.
+The smoke example covers public GraphQL request, preview fetch, author lookup by username, and a `postCreatedByAuthor` GraphQL-SSE connect attempt with a short timeout.
 
 ## Development
 
