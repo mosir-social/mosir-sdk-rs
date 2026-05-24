@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use cynic::{QueryBuilder, SubscriptionBuilder};
+use futures_util::StreamExt;
 use mosir_sdk_rs::{
     generated::operations::{
         GetAccountProfile, GetAccountProfileVariables, GetLinkPreview, GetLinkPreviewVariables,
@@ -53,31 +54,29 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     };
 
-    let sse = tokio::time::timeout(
-        Duration::from_secs(5),
-        client.subscribe_sse_operation(
+    let mut stream = client
+        .subscribe_sse_operation(
             PostCreatedByAuthor::build(PostCreatedByAuthorVariables {
                 author_id: &profile_data.get_account_profile.id,
                 post_type: Some(PostType::Post),
             }),
             None,
-        ),
-    )
-    .await;
+        )
+        .await?;
 
-    match sse {
-        Ok(Ok(response)) => {
-            println!("sse connect status: {}", response.status());
-            println!(
-                "sse content-type: {:?}",
-                response.headers().get(reqwest::header::CONTENT_TYPE)
-            );
+    match tokio::time::timeout(Duration::from_secs(5), stream.next()).await {
+        Ok(Some(Ok(event))) => {
+            println!("sse event data: {:#?}", event.data);
+            println!("sse event errors: {:#?}", event.errors);
         }
-        Ok(Err(err)) => {
-            eprintln!("sse connect error: {err}");
+        Ok(Some(Err(err))) => {
+            eprintln!("sse stream error: {err}");
+        }
+        Ok(None) => {
+            eprintln!("sse stream ended before receiving an event");
         }
         Err(_) => {
-            eprintln!("sse connect timed out after 5s");
+            eprintln!("sse next event timed out after 5s");
         }
     }
 

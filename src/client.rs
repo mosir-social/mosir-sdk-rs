@@ -88,7 +88,7 @@ impl MosirClient {
         fetch_preview_image(&self.http, kind, id, options).await
     }
 
-    pub async fn subscribe_sse(
+    pub async fn connect_sse(
         &self,
         query: &str,
         operation_name: Option<&str>,
@@ -109,7 +109,7 @@ impl MosirClient {
         .await
     }
 
-    pub async fn subscribe_sse_operation<ResponseData, Vars>(
+    pub async fn connect_sse_operation<ResponseData, Vars>(
         &self,
         operation: cynic::StreamingOperation<ResponseData, Vars>,
         headers: Option<HeaderMap>,
@@ -125,5 +125,28 @@ impl MosirClient {
             headers,
         )
         .await
+    }
+
+    pub async fn subscribe_sse(
+        &self,
+        query: &str,
+        operation_name: Option<&str>,
+        headers: Option<HeaderMap>,
+    ) -> anyhow::Result<sse::GraphqlSseStream<serde_json::Value>> {
+        let response = self.connect_sse(query, operation_name, headers).await?;
+        sse::into_graphql_stream(response).await
+    }
+
+    pub async fn subscribe_sse_operation<ResponseData, Vars>(
+        &self,
+        operation: cynic::StreamingOperation<ResponseData, Vars>,
+        headers: Option<HeaderMap>,
+    ) -> anyhow::Result<sse::GraphqlSseStream<ResponseData>>
+    where
+        Vars: serde::Serialize,
+        ResponseData: serde::de::DeserializeOwned + Send + 'static,
+    {
+        let response = self.connect_sse_operation(operation, headers).await?;
+        sse::into_graphql_stream(response).await
     }
 }

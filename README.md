@@ -9,7 +9,8 @@ Rust SDK for the Mosir public GraphQL API.
 - generated GraphQL operation/types from shared schema files
 - a thin async client
 - required media/preview helpers (aligned with TS/Python behavior)
-- thin SSE connect helper (app owns reconnect strategy)
+- typed GraphQL-SSE stream interface (`Stream<Item = Result<...>>`)
+- low-level SSE connect helper (app owns reconnect strategy)
 
 ## License
 
@@ -28,8 +29,9 @@ cargo add mosir-sdk-rs
 - `run_graphql(...)` for typed Cynic operations
 - `with_token(...)` for bearer auth
 - `with_endpoint(...)` for custom endpoint
-- `subscribe_sse_operation(...)` for typed GraphQL-SSE connection
-- `subscribe_sse(query, operation_name, ...)` for raw GraphQL-SSE connection
+- `subscribe_sse_operation(...)` for typed GraphQL-SSE event streams
+- `subscribe_sse(query, operation_name, ...)` for raw-query SSE event streams
+- `connect_sse*` methods for low-level access to the raw `reqwest::Response`
 - helper wrappers:
   - `get_preview_image_url(...)`
   - `fetch_preview_image(...)`
@@ -128,14 +130,17 @@ No media file is available for the requested media object.
 
 ## SSE
 
-`subscribe_sse(...)` is intentionally thin. Reconnect/backoff should be implemented in the application.
+Use `subscribe_sse*` as the default API. It converts GraphQL-SSE events into an async stream, so you can consume with `stream.next().await`.
 
-Server-side long-lived connection limits (commonly around 1 hour) should be handled by reconnecting intentionally.
+For low-level control (headers/status/manual parsing), use `connect_sse*` to get the raw `reqwest::Response`.
 
-### GraphQL-SSE connect example (typed)
+Reconnect/backoff remains an application concern. Server-side long-lived connection limits (commonly around 1 hour) should be handled by reconnecting intentionally.
+
+### GraphQL-SSE stream example (typed)
 
 ```rust
 use cynic::{QueryBuilder, SubscriptionBuilder};
+use futures_util::StreamExt;
 use mosir_sdk_rs::{
     generated::operations::{
         GetAccountProfile, GetAccountProfileVariables, PostCreatedByAuthor,
@@ -161,7 +166,7 @@ async fn main() -> anyhow::Result<()> {
         .get_account_profile
         .id;
 
-    let response = client
+    let mut stream = client
         .subscribe_sse_operation(
             PostCreatedByAuthor::build(PostCreatedByAuthorVariables {
                 author_id,
@@ -171,11 +176,11 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
 
-    println!("status: {}", response.status());
-    println!(
-        "content-type: {:?}",
-        response.headers().get(reqwest::header::CONTENT_TYPE)
-    );
+    while let Some(event) = stream.next().await {
+        let event = event?;
+        println!("data: {:#?}", event.data);
+        println!("errors: {:#?}", event.errors);
+    }
 
     Ok(())
 }
@@ -204,7 +209,7 @@ Generated output:
 cargo run --example smoke
 ```
 
-The smoke example covers public GraphQL request, preview fetch, author lookup by username, and a `postCreatedByAuthor` GraphQL-SSE connect attempt with a short timeout.
+The smoke example covers public GraphQL request, preview fetch, author lookup by username, and a `postCreatedByAuthor` GraphQL-SSE stream attempt with a short timeout.
 
 ## Development
 
