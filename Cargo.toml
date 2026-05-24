@@ -23,5 +23,5 @@ anyhow = "1.0"
 cynic-codegen = "3.13.2"
 
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
 
