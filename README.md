@@ -11,6 +11,10 @@ Rust SDK for the Mosir public GraphQL API.
 - required media/preview helpers (aligned with TS/Python behavior)
 - thin SSE connect helper (app owns reconnect strategy)
 
+## License
+
+Licensed under **LGPL-3.0-or-later**.
+
 ## Install
 
 ```bash
