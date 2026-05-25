@@ -2,19 +2,25 @@
 
 Rust SDK for the Mosir public GraphQL API.
 
-## Status
+## What this SDK provides
 
-`0.1.x` is focused on a **low-maintenance core**:
+- generated Rust GraphQL types/operations from `public.graphqls` and `public.operations.graphql`
+- typed operation execution with Cynic
+- optional Bearer token auth
+- default endpoint: `https://beta.mosir.app/api/v1`
+- SSE subscription support out of the box
+- media and preview helpers
+- low-level connect APIs for custom SSE/event handling
 
-- generated GraphQL operation/types from shared schema files
-- a thin async client
-- required media/preview helpers (aligned with TS/Python behavior)
-- typed GraphQL-SSE stream interface (`Stream<Item = Result<...>>`)
-- low-level SSE connect helper (app owns reconnect strategy)
+## Transport choice
 
-## License
+This SDK uses:
 
-Licensed under **LGPL-3.0-or-later**.
+- `cynic` + `reqwest` for queries and mutations
+- GraphQL-over-SSE over `reqwest` for subscriptions
+
+This keeps the package small while still supporting the preferred subscription transport.
+WebSocket support is intentionally not bundled.
 
 ## Install
 
@@ -22,36 +28,16 @@ Licensed under **LGPL-3.0-or-later**.
 cargo add mosir-sdk-rs
 ```
 
-## API overview
-
-`MosirClient` provides:
-
-- `run_graphql(...)` for typed Cynic operations
-- `with_token(...)` for bearer auth
-- `with_endpoint(...)` for custom endpoint
-- `subscribe_sse_operation(...)` for typed GraphQL-SSE event streams
-- `subscribe_sse(query, operation_name, ...)` for raw-query SSE event streams
-- `connect_sse*` methods for low-level access to the raw `reqwest::Response`
-- helper wrappers:
-  - `get_preview_image_url(...)`
-  - `fetch_preview_image(...)`
-  - `select_media_file(...)`
-  - `fetch_media(...)`
-
-## Endpoint
-
-Default endpoint:
-
-- `https://beta.mosir.app/api/v1`
-
 ## Quick start
 
-### Public request (no token)
+### Anonymous/public requests
+
+Only public data needs no token.
 
 ```rust
 use cynic::QueryBuilder;
 use mosir_sdk_rs::{
-    generated::operations::{GetLinkPreview, GetLinkPreviewVariables},
+    generated::operations::{GetPost, GetPostVariables},
     MosirClient,
 };
 
@@ -59,27 +45,30 @@ use mosir_sdk_rs::{
 async fn main() -> anyhow::Result<()> {
     let client = MosirClient::new();
 
-    let response = client
-        .run_graphql(GetLinkPreview::build(GetLinkPreviewVariables {
-            url: "https://mosir.app/",
-        }))
+    let post_id = cynic::Id::new("VLO8u7UXqclQ7byjfMEX0");
+    let post = client
+        .run_graphql(GetPost::build(GetPostVariables { post_id: &post_id }))
         .await?;
 
-    println!("data: {:#?}", response.data);
-    println!("errors: {:#?}", response.errors);
+    if let Some(data) = post.data {
+        println!("{}", data.get_post.content);
+    }
+
     Ok(())
 }
 ```
 
-### Authenticated client
+### Authenticated requests
+
+Use a token for authenticated operations such as notifications.
 
 ```rust
 use mosir_sdk_rs::MosirClient;
 
-let client = MosirClient::new().with_token("YOUR_BEARER_TOKEN");
+let client = MosirClient::new().with_token(std::env::var("MOSIR_API_TOKEN")?);
 ```
 
-### Custom endpoint
+## Custom endpoint
 
 ```rust
 use mosir_sdk_rs::MosirClient;
@@ -87,56 +76,148 @@ use mosir_sdk_rs::MosirClient;
 let client = MosirClient::with_endpoint("https://example.com/api/v1");
 ```
 
-## Helper behavior
+## Common usage examples
 
-### Preview image URL + fetch
+### Get a post
+
+```rust
+use cynic::QueryBuilder;
+use mosir_sdk_rs::{
+    generated::operations::{GetPost, GetPostVariables},
+    MosirClient,
+};
+
+let client = MosirClient::new();
+let post_id = cynic::Id::new("VLO8u7UXqclQ7byjfMEX0");
+let post = client
+    .run_graphql(GetPost::build(GetPostVariables { post_id: &post_id }))
+    .await?;
+
+if let Some(data) = post.data {
+    println!("{}", data.get_post.author.username);
+    println!("{}", data.get_post.content);
+}
+```
+
+### Get replies under a post
+
+Replies are exposed as nested GraphQL fields on `Post`, so this is a good case for direct GraphQL usage:
+
+```rust
+use reqwest::Client;
+use serde_json::json;
+
+let endpoint = "https://beta.mosir.app/api/v1";
+let payload = json!({
+    "query": r#"
+      query GetPostReplies($postId: ID!, $limit: Int) {
+        getPost(postId: $postId) {
+          id
+          commentsRecent(limit: $limit) {
+            edges {
+              id
+              content
+              createdAt
+              author {
+                id
+                username
+                displayName
+              }
+            }
+            pageInfo {
+              endCursor
+              hasNextPage
+              totalCount
+            }
+          }
+        }
+      }
+    "#,
+    "variables": {
+      "postId": "VLO8u7UXqclQ7byjfMEX0",
+      "limit": 3
+    }
+});
+
+let data: serde_json::Value = Client::new()
+    .post(endpoint)
+    .json(&payload)
+    .send()
+    .await?
+    .json()
+    .await?;
+
+println!("{}", data["data"]["getPost"]["commentsRecent"]["edges"]);
+```
+
+### Get notifications
+
+```rust
+use cynic::QueryBuilder;
+use mosir_sdk_rs::{
+    generated::operations::{GetNotifications, GetNotificationsVariables},
+    MosirClient,
+};
+
+let client = MosirClient::new().with_token(std::env::var("MOSIR_API_TOKEN")?);
+
+let notifications = client
+    .run_graphql(GetNotifications::build(GetNotificationsVariables {
+        cursor: None,
+        filter: None,
+        limit: Some(20),
+    }))
+    .await?;
+
+println!("{:#?}", notifications.data);
+```
+
+### Fetch media bytes from a `Media` result
+
+```rust
+use mosir_sdk_rs::MosirClient;
+
+let client = MosirClient::new();
+let response = client.fetch_media(&media, Default::default()).await?;
+let bytes = response.bytes().await?;
+println!("{}", bytes.len());
+```
+
+### Fetch preview image for a post, profile, or collection
 
 ```rust
 use mosir_sdk_rs::{helpers::PreviewImageKind, MosirClient};
 
-# async fn demo() -> anyhow::Result<()> {
 let client = MosirClient::new();
-let post_id = "VLO8u7UXqclQ7byjfMEX0";
 
-let url = client.get_preview_image_url(PreviewImageKind::Post, post_id);
-println!("{url}");
+let preview_url = client.get_preview_image_url(PreviewImageKind::Post, "VLO8u7UXqclQ7byjfMEX0");
+println!("{preview_url}");
 
-let response = client
-    .fetch_preview_image(PreviewImageKind::Post, post_id, Default::default())
+let preview_response = client
+    .fetch_preview_image(PreviewImageKind::Post, "VLO8u7UXqclQ7byjfMEX0", Default::default())
     .await?;
-
-println!("status: {}", response.status());
-# Ok(()) }
+let preview_bytes = preview_response.bytes().await?;
+println!("{}", preview_bytes.len());
 ```
 
-`get_preview_image_url` uses absolute OGI route semantics (same as TS `new URL("/ogi/...", endpoint)`), so output is rooted at endpoint origin.
+All generated operations are available via `mosir_sdk_rs::generated::operations::*` and can be executed with `run_graphql(...)`.
 
-### Media file selection order
+## SSE subscriptions
 
-`select_media_file` fallback order:
+Subscriptions let your app receive updates from Mosir in near real time without polling.
+This SDK uses **SSE** (Server-Sent Events) for subscriptions by default.
 
-1. `QUALITY`
-2. `COMPATIBLE`
-3. `THUMBNAIL`
-4. `ANIMATED_COMPATIBLE`
-5. `ANIMATED_THUMBNAIL`
-6. first file
+A good example is a Discord bot:
+- subscribe to `PostCreatedByAuthor`
+- when a creator publishes something new, format it
+- send a message into a Discord channel
 
-When no file exists, `fetch_media` returns this exact error:
+That way the bot reacts as soon as something changes, instead of repeatedly calling the API every few seconds.
+SSE is especially useful for backend workers, bots, notification relays, and other long-running processes that want a simple one-way stream of events from the server.
+For public subscriptions like `PostCreatedByAuthor`, a token is not required.
 
-```text
-No media file is available for the requested media object.
-```
-
-## SSE
-
-Use `subscribe_sse*` as the default API. It converts GraphQL-SSE events into an async stream, so you can consume with `stream.next().await`.
-
-For low-level control (headers/status/manual parsing), use `connect_sse*` to get the raw `reqwest::Response`.
-
-Reconnect/backoff remains an application concern. Server-side long-lived connection limits (commonly around 1 hour) should be handled by reconnecting intentionally.
-
-### GraphQL-SSE stream example (typed)
+Note: each SSE connection lasts at most 1 hour. In practice, network conditions may cause it to end earlier.
+If you build a bot, worker, or relay process, make sure you implement reconnect logic.
 
 ```rust
 use cynic::{QueryBuilder, SubscriptionBuilder};
@@ -178,44 +259,113 @@ async fn main() -> anyhow::Result<()> {
 
     while let Some(event) = stream.next().await {
         let event = event?;
-        println!("data: {:#?}", event.data);
-        println!("errors: {:#?}", event.errors);
+        println!("{:#?}", event.data);
     }
 
     Ok(())
 }
 ```
 
-## Code generation
+You can also use the lower-level raw subscription API:
 
-Source-of-truth files:
+```rust
+let mut stream = client
+    .subscribe_sse(
+        r#"subscription PostCreatedByAuthor($authorId: ID!, $postType: PostType) {
+          postCreatedByAuthor(authorId: $authorId, postType: $postType) {
+            id
+            content
+          }
+        }"#,
+        Some("PostCreatedByAuthor"),
+        None,
+    )
+    .await?;
+```
 
-- `public.graphqls`
-- `public.operations.graphql`
+## Raw GraphQL access
 
-Regenerate operations:
+Authentication is optional. Pass `with_token(...)` for authenticated operations, or omit it when accessing only public data.
+
+### Typed operation usage
+
+```rust
+use cynic::QueryBuilder;
+use mosir_sdk_rs::{
+    generated::operations::{GetNotifications, GetNotificationsVariables},
+    MosirClient,
+};
+
+let client = MosirClient::new().with_token(std::env::var("MOSIR_API_TOKEN")?);
+let data = client
+    .run_graphql(GetNotifications::build(GetNotificationsVariables {
+        cursor: None,
+        filter: None,
+        limit: Some(20),
+    }))
+    .await?;
+```
+
+### Raw GraphQL string usage
+
+For ad-hoc query strings, send requests with `reqwest` directly to the same endpoint.
+
+## WebSocket usage
+
+WebSocket transport is not bundled.
+If you want it, use your own GraphQL WebSocket client against the same endpoint.
+
+## Notes
+
+- default endpoint: `https://beta.mosir.app/api/v1`
+- `token` is optional for public data and required only for authenticated operations
+- the same applies to subscriptions: public subscription data does not require a token
+- media helpers are available through `select_media_file(...)` and `fetch_media(...)`
+- preview image helpers are available through `get_preview_image_url(...)` and `fetch_preview_image(...)`
+- subscriptions use SSE in this SDK
+- direct GraphQL usage is supported through generated typed operations and optional direct `reqwest` calls
+
+## Development
+
+### Generate code
 
 ```bash
 task codegen
 ```
 
-Generated output:
-
-- `src/generated/operations.rs`
-
-## Smoke test
-
-```bash
-cargo run --example smoke
-```
-
-The smoke example covers public GraphQL request, preview fetch, author lookup by username, and a `postCreatedByAuthor` GraphQL-SSE stream attempt with a short timeout.
-
-## Development
+### Typecheck / check
 
 ```bash
 task check
+```
+
+### Test
+
+```bash
 task test
+```
+
+### Smoke
+
+```bash
 task smoke
+```
+
+### Full CI check
+
+```bash
 task ci
 ```
+
+## Repo artifacts
+
+- `public.graphqls` — copied public schema artifact
+- `public.operations.graphql` — copied curated operation document
+- `src/generated/operations.rs` — generated GraphQL types and operations
+- `src/client.rs` — thin async client and operation execution
+- `src/sse.rs` — GraphQL SSE parsing/stream helpers
+
+## License
+
+This project is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0).
+See [`LICENSE`](./LICENSE) for details.
