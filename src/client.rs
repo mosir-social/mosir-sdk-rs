@@ -16,6 +16,12 @@ pub struct MosirClient {
     pub(crate) token: Option<String>,
 }
 
+impl Default for MosirClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MosirClient {
     pub fn new() -> Self {
         Self::with_endpoint(DEFAULT_ENDPOINT)

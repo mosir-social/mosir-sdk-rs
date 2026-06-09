@@ -1,6 +1,6 @@
 [package]
 name = "mosir-sdk-rs"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "Rust SDK for the Mosir public GraphQL API"
 license = "LGPL-3.0-or-later"
