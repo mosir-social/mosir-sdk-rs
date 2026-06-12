@@ -172,12 +172,19 @@ let notifications = client
 println!("{:#?}", notifications.data);
 ```
 
-### Fetch media bytes from a `Media` result
+### Fetch media bytes from a media helper value
 
 ```rust
-use mosir_sdk_rs::MosirClient;
+use mosir_sdk_rs::{helpers::MediaFileProfile, helpers::MediaFileMetadata, helpers::MediaMetadata, MosirClient};
 
 let client = MosirClient::new();
+let media = MediaMetadata {
+    files: vec![MediaFileMetadata {
+        profile: MediaFileProfile::Quality,
+        url: "https://example.com/media.jpg".to_string(),
+    }],
+};
+
 let response = client.fetch_media(&media, Default::default()).await?;
 let bytes = response.bytes().await?;
 println!("{}", bytes.len());
