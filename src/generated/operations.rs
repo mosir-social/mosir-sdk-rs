@@ -3,51 +3,13 @@ mod schema {
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetAccountProfileVariables<'a> {
-    pub account_id: Option<&'a cynic::Id>,
-    pub username: Option<&'a str>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetTopicFeedPostsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-    pub topic_id: &'a cynic::Id,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetMutualFollowersVariables<'a> {
-    pub account_id: &'a cynic::Id,
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetDiscussionsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetPostVariables<'a> {
-    pub post_id: &'a cynic::Id,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetPostDraftsVariables<'a> {
-    pub cursor: Option<&'a str>,
+pub struct GetPostDraftsCountVariables {
     pub filter: Option<PostDraftFilterInput>,
-    pub limit: Option<i32>,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetLinkPreviewVariables<'a> {
-    pub url: &'a str,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetPostCollectionVariables<'a> {
-    pub id: &'a cynic::Id,
+pub struct GetMediaVariables<'a> {
+    pub media_id: &'a cynic::Id,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
@@ -58,9 +20,104 @@ pub struct GetProfileTagProfilesVariables<'a> {
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetPostReactionsVariables<'a> {
-    pub first: Option<i32>,
+pub struct GetReactedPostsVariables<'a> {
+    pub cursor: Option<&'a str>,
+    pub limit: Option<i32>,
+    pub reaction_type: ReactionTypeInput,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetPostReactionDetailsVariables<'a> {
+    pub cursor: Option<&'a str>,
+    pub limit: Option<i32>,
     pub post_id: &'a cynic::Id,
+    pub reaction_type: Option<ReactionTypeInput>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetPostCollectionVariables<'a> {
+    pub id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetProfileTagByIdVariables<'a> {
+    pub id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetUserPostsVariables<'a> {
+    pub account_id: &'a cynic::Id,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<i32>,
+    pub post_type: Option<PostType>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetNotificationsVariables<'a> {
+    pub cursor: Option<&'a str>,
+    pub filter: Option<NotificationFilterInput>,
+    pub limit: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetLinkPreviewVariables<'a> {
+    pub url: &'a str,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetFollowingAccountsVariables<'a> {
+    pub account_id: &'a cynic::Id,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetTopicFeedPostsVariables<'a> {
+    pub cursor: Option<&'a str>,
+    pub limit: Option<i32>,
+    pub topic_id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetPostDraftsVariables<'a> {
+    pub cursor: Option<&'a str>,
+    pub filter: Option<PostDraftFilterInput>,
+    pub limit: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct PostUpdatedVariables<'a> {
+    pub post_id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetMutualFollowersVariables<'a> {
+    pub account_id: &'a cynic::Id,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetTopicsVariables {
+    pub limit: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct PostCreatedByAuthorVariables<'a> {
+    pub author_id: &'a cynic::Id,
+    pub post_type: Option<PostType>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetPostVariables<'a> {
+    pub post_id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetPostCollectionsByAuthorVariables<'a> {
+    pub author_id: &'a cynic::Id,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<i32>,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
@@ -70,41 +127,24 @@ pub struct ListProfileTagsVariables<'a> {
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct SearchPostCollectionsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub filter: Option<PostCollectionSearchFilterInput<'a>>,
-    pub limit: Option<i32>,
-    pub query: &'a str,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct PostUpdatedVariables<'a> {
-    pub post_id: &'a cynic::Id,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
 pub struct GetPostDraftVariables<'a> {
     pub id: &'a cynic::Id,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetMediaVariables<'a> {
-    pub media_id: &'a cynic::Id,
+pub struct GetAccountProfileVariables<'a> {
+    pub account_id: Option<&'a cynic::Id>,
+    pub username: Option<&'a str>,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetPostDraftsCountVariables {
-    pub filter: Option<PostDraftFilterInput>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetFollowingPostsVariables<'a> {
+pub struct GetUserReactionsVariables<'a> {
     pub cursor: Option<&'a str>,
     pub limit: Option<i32>,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetMyPostCollectionsVariables<'a> {
+pub struct GetFollowingPostsVariables<'a> {
     pub cursor: Option<&'a str>,
     pub limit: Option<i32>,
 }
@@ -117,48 +157,9 @@ pub struct GetFollowedAccountsVariables<'a> {
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetReactedPostsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-    pub reaction_type: ReactionTypeInput,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetUserReactionsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetPostReactionDetailsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-    pub post_id: &'a cynic::Id,
-    pub reaction_type: Option<ReactionTypeInput>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct PostCreatedByAuthorVariables<'a> {
-    pub author_id: &'a cynic::Id,
-    pub post_type: Option<PostType>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
 pub struct GetFollowedPostCollectionsVariables<'a> {
     pub cursor: Option<&'a str>,
     pub limit: Option<i32>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetPopularPostsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub language: Option<&'a str>,
-    pub limit: Option<i32>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct PostCreatedInCollectionVariables<'a> {
-    pub post_collection_id: &'a cynic::Id,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
@@ -167,8 +168,13 @@ pub struct PostDeletedVariables<'a> {
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetPostCollectionsByAuthorVariables<'a> {
-    pub author_id: &'a cynic::Id,
+pub struct GetPostReactionsVariables<'a> {
+    pub first: Option<i32>,
+    pub post_id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetDiscussionsVariables<'a> {
     pub cursor: Option<&'a str>,
     pub limit: Option<i32>,
 }
@@ -180,14 +186,34 @@ pub struct GetBlockedAccountsVariables<'a> {
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetFollowingAccountsVariables<'a> {
-    pub account_id: &'a cynic::Id,
+pub struct GetFeedPostsVariables<'a> {
     pub cursor: Option<&'a str>,
     pub limit: Option<i32>,
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetTopicsVariables {
+pub struct ReplyCreatedUnderRootPostVariables<'a> {
+    pub root_post_id: &'a cynic::Id,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetPopularPostsVariables<'a> {
+    pub cursor: Option<&'a str>,
+    pub language: Option<&'a str>,
+    pub limit: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct SearchPostCollectionsVariables<'a> {
+    pub cursor: Option<&'a str>,
+    pub filter: Option<PostCollectionSearchFilterInput<'a>>,
+    pub limit: Option<i32>,
+    pub query: &'a str,
+}
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct GetMyPostCollectionsVariables<'a> {
+    pub cursor: Option<&'a str>,
     pub limit: Option<i32>,
 }
 
@@ -199,34 +225,8 @@ pub struct GetHistoryPostsVariables<'a> {
 }
 
 #[derive(cynic::QueryVariables, Debug)]
-pub struct GetUserPostsVariables<'a> {
-    pub account_id: &'a cynic::Id,
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-    pub post_type: Option<PostType>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetFeedPostsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub limit: Option<i32>,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetProfileTagByIdVariables<'a> {
-    pub id: &'a cynic::Id,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct ReplyCreatedUnderRootPostVariables<'a> {
-    pub root_post_id: &'a cynic::Id,
-}
-
-#[derive(cynic::QueryVariables, Debug)]
-pub struct GetNotificationsVariables<'a> {
-    pub cursor: Option<&'a str>,
-    pub filter: Option<NotificationFilterInput>,
-    pub limit: Option<i32>,
+pub struct PostCreatedInCollectionVariables<'a> {
+    pub post_collection_id: &'a cynic::Id,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
@@ -677,6 +677,9 @@ pub struct Notification {
     pub message: Option<String>,
     #[cynic(rename = "type")]
     pub type_: NotificationType,
+    pub reaction_count: Option<i32>,
+    pub reaction_variant_count: Option<i32>,
+    pub is_multi_user_reaction: Option<bool>,
     #[cynic(rename = "relatedPostID")]
     pub related_post_id: Option<cynic::Id>,
     #[cynic(rename = "relatedPostCollectionID")]
