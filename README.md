@@ -334,34 +334,38 @@ If you want it, use your own GraphQL WebSocket client against the same endpoint.
 
 ## Development
 
+Install [mise](https://mise.jdx.dev/getting-started.html) (2026.11.0 or later)
+alongside your Rust toolchain, then run `mise trust`. List commands with
+`mise tasks` and view task help with `mise run <task> --help`.
+
 ### Generate code
 
 ```bash
-task codegen
+mise run codegen
 ```
 
 ### Typecheck / check
 
 ```bash
-task check
+mise run check
 ```
 
 ### Test
 
 ```bash
-task test
+mise run test
 ```
 
 ### Smoke
 
 ```bash
-task smoke
+mise run smoke
 ```
 
 ### Full CI check
 
 ```bash
-task ci
+mise run ci
 ```
 
 ## Repo artifacts
