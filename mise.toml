@@ -1,0 +1,47 @@
+min_version = "2026.11.0"
+
+[tasks.codegen]
+description = "Generate GraphQL operations, installing cynic-cli if needed"
+run = '''
+command -v cynic >/dev/null 2>&1 || cargo install --locked cynic-cli
+mkdir -p src/generated
+{
+  echo 'mod schema {'
+  echo '    cynic::use_schema!("public.graphqls");'
+  echo '}'
+  echo
+  cynic querygen --schema public.graphqls --query public.operations.graphql
+} > src/generated/operations.rs
+cargo fmt -- src/generated/operations.rs
+'''
+
+[tasks.check]
+description = "Check the Rust SDK compiles"
+run = "cargo check"
+
+[tasks.test]
+description = "Run Rust tests"
+run = "cargo test"
+
+[tasks.smoke]
+description = "Exercise GraphQL, preview images and SSE against the public API"
+run = "cargo run --example smoke"
+
+[tasks.fmt]
+description = "Format all Rust code"
+run = "cargo fmt --all"
+
+[tasks.clippy]
+description = "Lint all targets and features, treating warnings as errors"
+run = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[tasks.ci]
+description = "Generate, format, check, test, smoke test and lint in sequence"
+run = [
+  "mise run codegen",
+  "mise run fmt",
+  "mise run check",
+  "mise run test",
+  "mise run smoke",
+  "mise run clippy",
+]
